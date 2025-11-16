@@ -1,0 +1,15 @@
+{
+  "cli": { "version": ">= 3.18.0" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "production": {
+      "autoIncrement": "version",
+      "ios": { "image": "latest" },
+      "android": { "image": "latest" }
+    }
+  },
+  "submit": { "production": {} }
+}
