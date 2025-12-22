@@ -1,57 +1,20 @@
-import { Entypo, Feather } from "@expo/vector-icons";
+import { Entypo, Feather, Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, Vibration } from "react-native";
+import {
+  Keyboard,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Vibration,
+  Platform,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
-
-/** Локализация */
-type Lang = "ru" | "en" | "kk";
-const STRINGS: Record<Lang, Record<string, string>> = {
-  ru: {
-    session: "Сессия",
-    results: "Результаты",
-    add: "Добавить",
-    deleteAll: "Удалить всех",
-    participantNamePh: "Имя участника",
-    ok: "Ок",
-    cancel: "Отмена",
-    emptyHint: "Добавьте участников (до 10), затем нажмите «Старт».",
-    start: "Старт",
-    reset: "Сброс",
-    stop: "Стоп",
-    delete: "Удалить",
-    listEmpty: "Список пуст.",
-  },
-  en: {
-    session: "Session",
-    results: "Results",
-    add: "Add",
-    deleteAll: "Delete all",
-    participantNamePh: "Participant name",
-    ok: "OK",
-    cancel: "Cancel",
-    emptyHint: "Add participants (up to 10), then press “Start”.",
-    start: "Start",
-    reset: "Reset",
-    stop: "Stop",
-    delete: "Delete",
-    listEmpty: "List is empty.",
-  },
-  kk: {
-    session: "Сеанс",
-    results: "Нәтижелер",
-    add: "Қосу",
-    deleteAll: "Барлығын жою",
-    participantNamePh: "Қатысушының аты",
-    ok: "Жарайды",
-    cancel: "Бас тарту",
-    emptyHint: "Қатысушыларды (10-ға дейін) қосып, «Бастау» басыңыз.",
-    start: "Бастау",
-    reset: "Қалпына келтіру",
-    stop: "Тоқтату",
-    delete: "Жою",
-    listEmpty: "Тізім бос.",
-  },
-};
+import { useLanguage } from "../i18n/LanguageContext";
+import { STRINGS, LANG_LABEL, SUPPORTED_LANGS } from "../i18n/strings";
 
 /** Модель */
 type Participant = {
@@ -76,7 +39,7 @@ export default function GroupSTA() {
   const navigation = useNavigation();
 
   /** Язык */
-  const [lang, setLang] = useState<Lang>("ru");
+  const { lang, setLang } = useLanguage();
   const t = STRINGS[lang];
   const [langOpen, setLangOpen] = useState(false);
 
@@ -112,7 +75,7 @@ export default function GroupSTA() {
           accessibilityRole="button"
           accessibilityLabel="Language selector"
         >
-          <Text style={{ fontWeight: "800", color: "#111827" }}>{lang.toUpperCase()}</Text>
+          <Text style={{ fontWeight: "800", color: "#111827" }}>{LANG_LABEL[lang]}</Text>
         </Pressable>
       ),
     });
@@ -438,7 +401,7 @@ export default function GroupSTA() {
         {!sessionRunning ? (
           <>
             <Pressable
-              style={[styles.btn, styles.btnPrimary, list.length === 0 ? styles.btnDisabled : null]}
+              style={[styles.btn, styles.controlsBtn, styles.btnPrimary, list.length === 0 ? styles.btnDisabled : null]}
               disabled={list.length === 0}
               onPress={handleStartAll}
             >
@@ -446,17 +409,17 @@ export default function GroupSTA() {
             </Pressable>
 
             {canResetAll ? (
-              <Pressable style={[styles.btn, styles.btnWarn]} onPress={handleResetAll}>
+              <Pressable style={[styles.btn, styles.controlsBtn, styles.btnWarn]} onPress={handleResetAll}>
                 <Text style={styles.btnText}>{t.reset}</Text>
               </Pressable>
             ) : (
-              <Pressable style={[styles.btn, styles.btnGhost, styles.btnDisabled]} disabled>
+              <Pressable style={[styles.btn, styles.controlsBtn, styles.btnGhost, styles.btnDisabled]} disabled>
                 <Text style={[styles.btnText, { color: "#6b7280" }]}>{t.reset}</Text>
               </Pressable>
             )}
           </>
         ) : (
-          <Pressable style={[styles.btn, styles.btnDanger]} onPress={handleStopAll}>
+          <Pressable style={[styles.btn, styles.controlsBtn, styles.btnDanger]} onPress={handleStopAll}>
             <Text style={styles.btnText}>{t.stop}</Text>
           </Pressable>
         )}
@@ -502,9 +465,8 @@ export default function GroupSTA() {
       <Modal visible={langOpen} transparent animationType="fade" onRequestClose={() => setLangOpen(false)}>
         <View style={styles.langBackdrop}>
           <View style={styles.langCard}>
-            <Text style={styles.langTitle}>Language / Язык / Тіл</Text>
             <View style={{ gap: 8 }}>
-              {(["ru", "en", "kk"] as Lang[]).map((l) => (
+              {SUPPORTED_LANGS.map((l) => (
                 <Pressable
                   key={l}
                   style={[styles.langBtn, l === lang ? { backgroundColor: "#e5e7eb", borderColor: "#d1d5db" } : null]}
@@ -513,7 +475,7 @@ export default function GroupSTA() {
                     setLangOpen(false);
                   }}
                 >
-                  <Text style={{ fontWeight: "800", color: "#111827" }}>{l.toUpperCase()}</Text>
+                  <Text style={{ fontWeight: "800", color: "#111827" }}>{LANG_LABEL[l]}</Text>
                 </Pressable>
               ))}
             </View>
@@ -536,8 +498,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    justifyContent: "space-around",
-    paddingHorizontal: 30,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 6,
     gap: 10,
@@ -545,16 +507,17 @@ const styles = StyleSheet.create({
 
   sessionPillText: { fontSize: 14, fontWeight: "800", color: "#111827" },
   btnToolbar: {
-    width: 160,
     height: 48,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
+    flexGrow: 1,
+    flexBasis: "48%",
+    minWidth: 140,
   },
   sessionPill: {
-    width: 160,
     height: 48,
     borderRadius: 12,
     flexDirection: "row",
@@ -562,6 +525,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 3,
     backgroundColor: "#f3f4f6",
+    flexGrow: 1,
+    flexBasis: "48%",
+    minWidth: 140,
   },
 
   addRow: {
@@ -591,11 +557,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#ffffff",
     padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 1,
+      },
+      web: {
+        boxShadow: "0px 2px 8px rgba(0,0,0,0.05)",
+      },
+    }),
   },
   cardTop: {
     flexDirection: "row",
@@ -617,6 +592,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    flexWrap: "wrap",
   },
   timerText: { fontSize: 28, fontWeight: "900", letterSpacing: 1, minWidth: 90, textAlign: "center" },
 
@@ -654,9 +630,20 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 2 },
+      },
+      android: {
+        elevation: 4,
+      },
+      web: {
+        boxShadow: "0px -2px 12px rgba(0,0,0,0.12)",
+      },
+    }),
   },
 
   btn: {
@@ -668,6 +655,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 6,
+    flexShrink: 1,
+  },
+  controlsBtn: {
+    flexGrow: 1,
+    flexBasis: "45%",
+    minWidth: 0,
   },
   btnSm: { minWidth: 90, height: 40 },
   btnText: { fontWeight: "800", color: "white" },
