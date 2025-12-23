@@ -65,6 +65,8 @@ export default function SupportScreen() {
         </View>
 
         <Text style={styles.noteText}>{t.supportNote}</Text>
+
+        <Text style={styles.noteText}>{t.appIconNote}</Text>
       </View>
     </ScrollView>
   );

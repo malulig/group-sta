@@ -42,6 +42,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "Support via PayPal",
     supportContact: "Contact in Telegram",
     supportNote: "Support is optional. The app works fully without any donation.",
+    appIconNote: "The app icon was created by Freepik from www.flaticon.com.",
   },
 
   es: {
@@ -65,6 +66,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "Apoyar con PayPal",
     supportContact: "Contactar en Telegram",
     supportNote: "El apoyo es opcional. La app funciona completamente sin donaciones.",
+    appIconNote: "El ícono de la aplicación fue creado por Freepik desde www.flaticon.com.",
   },
 
   fr: {
@@ -89,6 +91,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "Soutenir via PayPal",
     supportContact: "Contacter sur Telegram",
     supportNote: "Le soutien est facultatif. L’application fonctionne entièrement sans don.",
+    appIconNote: "L’icône de l’application a été créée par Freepik à partir de www.flaticon.com.",
   },
 
   it: {
@@ -112,6 +115,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "Sostieni con PayPal",
     supportContact: "Contatta su Telegram",
     supportNote: "Il sostegno è facoltativo. L’app funziona completamente senza donazioni.",
+    appIconNote: "L’icona dell’app è stata creata da Freepik su www.flaticon.com.",
   },
 
   ja: {
@@ -134,6 +138,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "PayPalで支援する",
     supportContact: "Telegramで連絡",
     supportNote: "支援は任意です。寄付がなくてもアプリは完全に動作します。",
+    appIconNote: "アプリアイコンは Freepik によって作成され、www.flaticon.com から提供されています。",
   },
 
   kk: {
@@ -156,6 +161,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "PayPal арқылы қолдау",
     supportContact: "Telegram арқылы байланысу",
     supportNote: "Қолдау міндетті емес. Қосымша толықтай ақысыз жұмыс істейді.",
+    appIconNote: "Қосымшаның белгішесі Freepik тарапынан www.flaticon.com сайтынан жасалған.",
   },
 
   ru: {
@@ -179,6 +185,7 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "Поддержать через PayPal",
     supportContact: "Связаться в Telegram",
     supportNote: "Поддержка необязательна. Приложение полностью работает без пожертвований.",
+    appIconNote: "Иконка приложения создана Freepik с сайта www.flaticon.com.",
   },
 
   zh: {
@@ -201,5 +208,6 @@ export const STRINGS: Record<Lang, Strings> = {
     supportPayPal: "通过 PayPal 支持",
     supportContact: "通过 Telegram 联系",
     supportNote: "支持是自愿的。应用在不捐赠的情况下也能完整使用。",
+    appIconNote: "应用图标由 Freepik 创建，来源于 www.flaticon.com。",
   },
 };

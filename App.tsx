@@ -40,7 +40,7 @@ export default function App() {
                       accessibilityLabel="Support"
                       hitSlop={10}
                     >
-                      <FontAwesome5 name="donate" size={20} color="black" />{" "}
+                      <FontAwesome5 name="donate" size={20} color="black" />
                     </Pressable>
                   ),
                 })}
