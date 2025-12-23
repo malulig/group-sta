@@ -182,7 +182,14 @@ export default function GroupSTA() {
     nextBuzzAtSec.current = 60; // первая вибрация на 1:00
     setSessionRunning(true);
 
-    setList((prev) => prev.map((p) => (p.running ? p : { ...p, running: true, startedAtMs: startedAt })));
+    setList((prev) =>
+      prev.map((p) => ({
+        ...p,
+        running: true,
+        startedAtMs: startedAt,
+        offsetSec: 0,
+      }))
+    );
   };
 
   /** Стоп всем (не сбрасывает) */
