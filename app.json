@@ -22,7 +22,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anton.builov.groupSTA"
+      "package": "com.malulig.groupsta",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,8 +33,6 @@
         "projectId": "0b54dce5-4f72-4b64-a254-a8c90922a6c2"
       }
     },
-    "plugins": [
-      "expo-localization"
-    ]
+    "plugins": ["expo-localization"]
   }
 }
