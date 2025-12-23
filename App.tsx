@@ -4,10 +4,11 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Pressable } from "react-native";
-import { FontAwesome, FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 
 import GroupSTA from "./src/screens/GroupSTA";
 import SupportScreen from "./src/screens/SupportScreen";
+import HistoryScreen from "./src/screens/HistoryScreen";
 import { LanguageProvider } from "./src/i18n/LanguageContext";
 
 export type RootStackParamList = {
@@ -15,6 +16,7 @@ export type RootStackParamList = {
   GroupSTA: undefined;
   LogsSTA: undefined;
   Support: undefined;
+  History: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -30,7 +32,7 @@ export default function App() {
                 name="GroupSTA"
                 component={GroupSTA}
                 options={({ navigation }) => ({
-                  title: "Group STA v1",
+                  title: "Group STA",
                   headerTitleAlign: "center",
                   headerLeft: () => (
                     <Pressable
@@ -50,6 +52,11 @@ export default function App() {
                 name="Support"
                 component={SupportScreen}
                 options={{ title: "Support", headerTitleAlign: "center" }}
+              />
+              <Stack.Screen
+                name="History"
+                component={HistoryScreen}
+                options={{ title: "History", headerTitleAlign: "center" }}
               />
             </Stack.Navigator>
           </SafeAreaView>

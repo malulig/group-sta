@@ -1,6 +1,7 @@
-import { Entypo, Feather, Ionicons } from "@expo/vector-icons";
+import { Entypo, Feather, FontAwesome } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import {
+  Alert,
   Keyboard,
   Modal,
   Pressable,
@@ -15,6 +16,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../i18n/LanguageContext";
 import { STRINGS, LANG_LABEL, SUPPORTED_LANGS } from "../i18n/strings";
+import { addHistoryEntry, loadHistory } from "../history/historyStore";
 
 /** Модель */
 type Participant = {
@@ -41,6 +43,8 @@ export default function GroupSTA() {
   /** Язык */
   const { lang, setLang } = useLanguage();
   const t = STRINGS[lang];
+  const tEn = STRINGS.en;
+  const getText = (key: string) => t[key] ?? tEn[key] ?? key;
   const [langOpen, setLangOpen] = useState(false);
 
   /** Участники */
@@ -52,6 +56,8 @@ export default function GroupSTA() {
   const [sessionRunning, setSessionRunning] = useState(false);
   const [sessionElapsed, setSessionElapsed] = useState(0);
   const sessionStartedAt = useRef<number | null>(null);
+  const [sessionEndedAtMs, setSessionEndedAtMs] = useState<number | null>(null);
+  const lastSavedAtSecRef = useRef<number | null>(null);
 
   /** Каждую минуту — вибрация */
   const nextBuzzAtSec = useRef<number>(60);
@@ -171,6 +177,7 @@ export default function GroupSTA() {
     if (list.length === 0) return;
     const startedAt = Date.now();
     sessionStartedAt.current = startedAt;
+    setSessionEndedAtMs(null);
     setSessionElapsed(0);
     nextBuzzAtSec.current = 60; // первая вибрация на 1:00
     setSessionRunning(true);
@@ -180,14 +187,16 @@ export default function GroupSTA() {
 
   /** Стоп всем (не сбрасывает) */
   const handleStopAll = () => {
+    const endedAt = Date.now();
     setSessionRunning(false);
     sessionStartedAt.current = null;
+    setSessionEndedAtMs(endedAt);
     nextBuzzAtSec.current = 60;
 
     setList((prev) =>
       prev.map((p) => {
         if (!p.running || p.startedAtMs === null) return p;
-        const elapsed = (Date.now() - p.startedAtMs) / 1000;
+        const elapsed = (endedAt - p.startedAtMs) / 1000;
         return {
           ...p,
           running: false,
@@ -202,6 +211,7 @@ export default function GroupSTA() {
   const handleResetAll = () => {
     setSessionRunning(false);
     sessionStartedAt.current = null;
+    setSessionEndedAtMs(null);
     setSessionElapsed(0);
     nextBuzzAtSec.current = 60;
     setList((prev) =>
@@ -274,6 +284,35 @@ export default function GroupSTA() {
       })),
     [list, nowMs]
   );
+
+  const handleSaveHistory = async () => {
+    if (results.length === 0) {
+      Alert.alert(getText("historyNoDataTitle"), getText("historyNoDataBody"));
+      return;
+    }
+    if (!sessionEndedAtMs) {
+      Alert.alert(getText("historyNoSessionTitle"), getText("historyNoSessionBody"));
+      return;
+    }
+    const endedAtSec = Math.floor(sessionEndedAtMs / 1000);
+    const history = await loadHistory();
+    const hasSameTimestamp = history.some((entry) => {
+      const entrySec = Math.floor(new Date(entry.dateIso).getTime() / 1000);
+      return entrySec === endedAtSec;
+    });
+    if (hasSameTimestamp) {
+      Alert.alert(getText("historyAlreadySavedTitle"), getText("historyAlreadySavedBody"));
+      return;
+    }
+    await addHistoryEntry({
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      dateIso: new Date(sessionEndedAtMs).toISOString(),
+      items: results.map((r) => ({ name: r.name, seconds: r.value })),
+    });
+    lastSavedAtSecRef.current = endedAtSec;
+    Alert.alert(getText("historySavedTitle"), getText("historySavedBody"));
+  };
+
 
   return (
     <View style={{ flex: 1, backgroundColor: "#fff", paddingTop: 8 }}>
@@ -433,6 +472,20 @@ export default function GroupSTA() {
               <Text style={styles.modalTitle}>{t.results}</Text>
               <Pressable style={[styles.smallBtn, styles.btnGhost]} onPress={() => setResultsOpen(false)}>
                 <Feather name="x" size={18} color="#111827" />
+              </Pressable>
+            </View>
+
+            <View style={styles.historyRow}>
+              <Pressable
+                style={[styles.iconBtn, styles.btnGhost]}
+                onPress={() => navigation.navigate("History" as never)}
+                accessibilityRole="button"
+                accessibilityLabel="History"
+              >
+                <FontAwesome name="history" size={24} color="#111827" />
+              </Pressable>
+              <Pressable style={[styles.btn, styles.btnPrimary, styles.historySaveBtn]} onPress={handleSaveHistory}>
+                <Text style={styles.btnText}>{getText("historySave")}</Text>
               </Pressable>
             </View>
 
@@ -704,6 +757,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   modalTitle: { fontSize: 18, fontWeight: "800", color: "#111827", flex: 1 },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historySaveBtn: {
+    flexGrow: 1,
+  },
   modalOKbtn: {
     marginBottom: 20,
   },
