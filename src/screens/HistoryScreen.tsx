@@ -4,12 +4,22 @@ import { Feather } from "@expo/vector-icons";
 import { clearHistory, loadHistory, HistoryEntry, removeHistoryEntry } from "../history/historyStore";
 import { useLanguage } from "../i18n/LanguageContext";
 import { STRINGS } from "../i18n/strings";
+import { useThemeMode } from "../theme/ThemeContext";
 
 export default function HistoryScreen({ navigation }: { navigation: any }) {
   const { lang } = useLanguage();
   const t = STRINGS[lang];
   const tEn = STRINGS.en;
   const getText = (key: string) => t[key] ?? tEn[key] ?? key;
+  const { isDark } = useThemeMode();
+  const colors = {
+    bg: isDark ? "#0b0f19" : "#ffffff",
+    card: isDark ? "#111827" : "#ffffff",
+    text: isDark ? "#f9fafb" : "#111827",
+    muted: isDark ? "#9ca3af" : "#6b7280",
+    ghost: isDark ? "#1f2937" : "#f3f4f6",
+    list: isDark ? "#0f172a" : "#f9fafb",
+  };
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,11 +67,11 @@ export default function HistoryScreen({ navigation }: { navigation: any }) {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{getText("historyTitle")}</Text>
-        <Pressable style={styles.iconBtn} onPress={() => navigation.goBack()}>
-          <Feather name="x" size={20} color="#111827" />
+        <Text style={[styles.title, { color: colors.text }]}>{getText("historyTitle")}</Text>
+        <Pressable style={[styles.iconBtn, { backgroundColor: colors.ghost }]} onPress={() => navigation.goBack()}>
+          <Feather name="x" size={20} color={colors.text} />
         </Pressable>
       </View>
 
@@ -71,24 +81,26 @@ export default function HistoryScreen({ navigation }: { navigation: any }) {
         </Pressable>
       </View>
 
-      {loading && <Text style={styles.noteText}>{getText("historyLoading")}</Text>}
+      {loading && <Text style={[styles.noteText, { color: colors.muted }]}>{getText("historyLoading")}</Text>}
 
-      {!loading && history.length === 0 && <Text style={styles.noteText}>{getText("historyEmpty")}</Text>}
+      {!loading && history.length === 0 && (
+        <Text style={[styles.noteText, { color: colors.muted }]}>{getText("historyEmpty")}</Text>
+      )}
 
       {!loading &&
         history.map((entry) => (
-          <View key={entry.id} style={styles.card}>
+          <View key={entry.id} style={[styles.card, { backgroundColor: colors.card }]}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>{new Date(entry.dateIso).toLocaleString()}</Text>
-              <Pressable style={styles.iconBtn} onPress={() => onRemoveOne(entry.id)}>
-                <Feather name="trash-2" size={18} color="#111827" />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>{new Date(entry.dateIso).toLocaleString()}</Text>
+              <Pressable style={[styles.iconBtn, { backgroundColor: colors.ghost }]} onPress={() => onRemoveOne(entry.id)}>
+                <Feather name="trash-2" size={18} color={colors.text} />
               </Pressable>
             </View>
             <View style={styles.list}>
               {entry.items.map((item, idx) => (
-                <View key={`${entry.id}_${idx}`} style={styles.row}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.time}>{secToMMSS(item.seconds)}</Text>
+                <View key={`${entry.id}_${idx}`} style={[styles.row, { backgroundColor: colors.list }]}>
+                  <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+                  <Text style={[styles.time, { color: colors.text }]}>{secToMMSS(item.seconds)}</Text>
                 </View>
               ))}
             </View>

@@ -1,8 +1,8 @@
 import { Entypo, Feather, FontAwesome } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import {
   Alert,
-  Keyboard,
+  AppState,
   Modal,
   PanResponder,
   Pressable,
@@ -11,7 +11,6 @@ import {
   Text,
   TextInput,
   View,
-  Vibration,
   Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -19,17 +18,9 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useLanguage } from "../i18n/LanguageContext";
 import { STRINGS, LANG_LABEL, SUPPORTED_LANGS } from "../i18n/strings";
 import { addHistoryEntry, loadHistory } from "../history/historyStore";
+import { loadIndividualState, saveIndividualState, IndividualParticipant } from "../storage/individualStore";
 import type { RootStackParamList } from "../../App";
 import { useThemeMode } from "../theme/ThemeContext";
-
-/** Модель */
-type Participant = {
-  id: string;
-  name: string;
-  running: boolean;
-  startedAtMs: number | null;
-  offsetSec: number;
-};
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -41,10 +32,9 @@ function secToMMSS(sec: number) {
   return `${pad2(m)}:${pad2(r)}`;
 }
 
-export default function GroupSTA() {
+export default function IndividualSTA() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  /** Язык */
   const { lang, setLang } = useLanguage();
   const t = STRINGS[lang];
   const tEn = STRINGS.en;
@@ -59,37 +49,22 @@ export default function GroupSTA() {
       ghost: isDark ? "#1f2937" : "#f3f4f6",
       list: isDark ? "#0f172a" : "#f9fafb",
       border: isDark ? "#374151" : "#e5e7eb",
-      controls: isDark ? "#111827" : "#ffffff",
     }),
     [isDark]
   );
   const [langOpen, setLangOpen] = useState(false);
 
-  /** Участники */
-  const [list, setList] = useState<Participant[]>([]);
+  const [list, setList] = useState<IndividualParticipant[]>([]);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
 
-  /** Сессия (глобальный таймер) */
-  const [sessionRunning, setSessionRunning] = useState(false);
-  const [sessionElapsed, setSessionElapsed] = useState(0);
-  const sessionStartedAt = useRef<number | null>(null);
-  const [sessionEndedAtMs, setSessionEndedAtMs] = useState<number | null>(null);
-  const lastSavedAtSecRef = useRef<number | null>(null);
-
-  /** Каждую минуту — вибрация */
-  const nextBuzzAtSec = useRef<number>(60);
-
-  /** Тики для обновления */
-  const tickIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [nowMs, setNowMs] = useState<number>(Date.now());
-
-  /** Модалка результатов */
   const [resultsOpen, setResultsOpen] = useState(false);
+  const [nowMs, setNowMs] = useState<number>(Date.now());
+  const tickIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [lastStoppedAtMs, setLastStoppedAtMs] = useState<number | null>(null);
 
   const someoneRunning = useMemo(() => list.some((p) => p.running), [list]);
 
-  /** HeaderRight — селектор языка */
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -115,9 +90,17 @@ export default function GroupSTA() {
     });
   }, [navigation, lang, colors.text, isDark, toggleTheme]);
 
-  /** Запуск/останов интервала тиков */
   useEffect(() => {
-    if (someoneRunning || sessionRunning) {
+    const load = async () => {
+      const stored = await loadIndividualState();
+      setList(stored.list ?? []);
+      setLastStoppedAtMs(stored.lastStoppedAtMs ?? null);
+    };
+    void load();
+  }, []);
+
+  useEffect(() => {
+    if (someoneRunning) {
       if (!tickIdRef.current) {
         tickIdRef.current = setInterval(() => setNowMs(Date.now()), 250);
       }
@@ -133,49 +116,59 @@ export default function GroupSTA() {
         tickIdRef.current = null;
       }
     };
-  }, [someoneRunning, sessionRunning]);
-
-  /** Глобальный таймер */
-  useEffect(() => {
-    if (!sessionRunning || !sessionStartedAt.current) return;
-    const elapsed = (nowMs - sessionStartedAt.current) / 1000;
-    setSessionElapsed(elapsed);
-  }, [nowMs, sessionRunning]);
-
-  /** Вибрация каждую минуту (1:00, 2:00, ...) */
-  useEffect(() => {
-    if (!sessionRunning) {
-      nextBuzzAtSec.current = 60;
-      return;
-    }
-    if (sessionElapsed >= nextBuzzAtSec.current) {
-      // Короткая вибрация ~200ms
-      Vibration.vibrate(200);
-      nextBuzzAtSec.current += 60;
-    }
-  }, [sessionElapsed, sessionRunning]);
-
-  /** Если остановили последнего, останавливаем сессию */
-  useEffect(() => {
-    if (!someoneRunning && sessionRunning) {
-      handleStopAll();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [someoneRunning]);
 
-  /** Добавить участника (кнопка) */
+  const getParticipantSeconds = (p: IndividualParticipant) => {
+    if (!p.running || p.startedAtMs === null) return Math.floor(p.offsetSec);
+    const elapsed = (nowMs - p.startedAtMs) / 1000;
+    return Math.max(0, Math.floor(p.offsetSec + elapsed));
+  };
+
+  const snapshotList = useCallback(
+    (atMs: number) =>
+      list.map((p) => {
+        if (!p.running || p.startedAtMs === null) {
+          return { ...p, running: false, startedAtMs: null, offsetSec: p.offsetSec };
+        }
+        const elapsed = (atMs - p.startedAtMs) / 1000;
+        return {
+          ...p,
+          running: false,
+          startedAtMs: null,
+          offsetSec: Math.max(0, p.offsetSec + elapsed),
+        };
+      }),
+    [list]
+  );
+
+  useEffect(() => {
+    const persist = async () => {
+      const atMs = Date.now();
+      await saveIndividualState({ list: snapshotList(atMs), lastStoppedAtMs });
+    };
+    void persist();
+  }, [snapshotList, lastStoppedAtMs, list]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        const atMs = Date.now();
+        void saveIndividualState({ list: snapshotList(atMs), lastStoppedAtMs });
+      }
+    });
+    return () => sub.remove();
+  }, [snapshotList, lastStoppedAtMs]);
+
   const onAddTrainee = () => {
-    if (sessionRunning) return;
     if (list.length >= 10) return;
     setAdding(true);
     setNewName("");
   };
 
-  /** Подтвердить добавление */
   const confirmAdd = () => {
     const name = newName.trim();
     if (!name) return;
-    const p: Participant = {
+    const p: IndividualParticipant = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       name,
       running: false,
@@ -185,51 +178,39 @@ export default function GroupSTA() {
     setList((prev) => [...prev, p]);
     setAdding(false);
     setNewName("");
-    Keyboard.dismiss();
   };
 
-  /** Удалить одного (кнопка на карточке, скрыта во время сессии) */
   const removeParticipant = (id: string) => {
-    if (sessionRunning) return;
+    const target = list.find((p) => p.id === id);
+    if (target?.running) return;
     setList((prev) => prev.filter((p) => p.id !== id));
   };
 
-  /** Удалить всех (рядом с Добавить) */
   const removeAll = () => {
-    if (sessionRunning) return;
+    if (someoneRunning) return;
     setList([]);
   };
 
-  /** Старт всем */
-  const handleStartAll = () => {
-    if (list.length === 0) return;
-    const startedAt = Date.now();
-    sessionStartedAt.current = startedAt;
-    setSessionEndedAtMs(null);
-    setSessionElapsed(0);
-    nextBuzzAtSec.current = 60; // первая вибрация на 1:00
-    setSessionRunning(true);
-
+  const handleStartOne = (id: string) => {
     setList((prev) =>
-      prev.map((p) => ({
-        ...p,
-        running: true,
-        startedAtMs: startedAt,
-        offsetSec: 0,
-      }))
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        if (p.running) return p;
+        return {
+          ...p,
+          running: true,
+          startedAtMs: Date.now(),
+        };
+      })
     );
   };
 
-  /** Стоп всем (не сбрасывает) */
-  const handleStopAll = () => {
+  const handleStopOne = (id: string) => {
     const endedAt = Date.now();
-    setSessionRunning(false);
-    sessionStartedAt.current = null;
-    setSessionEndedAtMs(endedAt);
-    nextBuzzAtSec.current = 60;
-
+    setLastStoppedAtMs(endedAt);
     setList((prev) =>
       prev.map((p) => {
+        if (p.id !== id) return p;
         if (!p.running || p.startedAtMs === null) return p;
         const elapsed = (endedAt - p.startedAtMs) / 1000;
         return {
@@ -242,74 +223,6 @@ export default function GroupSTA() {
     );
   };
 
-  /** Сброс всем */
-  const handleResetAll = () => {
-    setSessionRunning(false);
-    sessionStartedAt.current = null;
-    setSessionEndedAtMs(null);
-    setSessionElapsed(0);
-    nextBuzzAtSec.current = 60;
-    setList((prev) =>
-      prev.map((p) => ({
-        ...p,
-        running: false,
-        startedAtMs: null,
-        offsetSec: 0,
-      }))
-    );
-  };
-
-  /** Стоп одному (кнопка справа в ряду таймера) */
-  const handleStopOne = (id: string) => {
-    setList((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        if (!p.running || p.startedAtMs === null) return p;
-        const elapsed = (Date.now() - p.startedAtMs) / 1000;
-        return {
-          ...p,
-          running: false,
-          startedAtMs: null,
-          offsetSec: p.offsetSec + elapsed,
-        };
-      })
-    );
-  };
-
-  /** ±1с участнику */
-  const nudge = (id: string, delta: number) => {
-    setList((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        if (p.running && p.startedAtMs !== null) {
-          const elapsed = (Date.now() - p.startedAtMs) / 1000;
-          const nextOffset = Math.max(0, p.offsetSec + elapsed + delta);
-          return {
-            ...p,
-            offsetSec: nextOffset,
-            startedAtMs: Date.now(),
-          };
-        }
-        const nextOffset = Math.max(0, p.offsetSec + delta);
-        return { ...p, offsetSec: nextOffset };
-      })
-    );
-  };
-
-  /** Текущее значение участника */
-  const getParticipantSeconds = (p: Participant) => {
-    if (!p.running || p.startedAtMs === null) return Math.floor(p.offsetSec);
-    const elapsed = (nowMs - p.startedAtMs) / 1000;
-    return Math.max(0, Math.floor(p.offsetSec + elapsed));
-  };
-
-  /** Можно ли «Сбросить всех» (когда никто не бежит и есть ненулевые значения) */
-  const canResetAll = useMemo(
-    () => !someoneRunning && list.some((p) => Math.floor(p.offsetSec) > 0),
-    [list, someoneRunning]
-  );
-
-  /** Результаты для модалки (считаем на лету) */
   const results = useMemo(
     () =>
       list.map((p) => ({
@@ -325,11 +238,12 @@ export default function GroupSTA() {
       Alert.alert(getText("historyNoDataTitle"), getText("historyNoDataBody"));
       return;
     }
-    if (!sessionEndedAtMs) {
+    if (someoneRunning) return;
+    if (!lastStoppedAtMs) {
       Alert.alert(getText("historyNoSessionTitle"), getText("historyNoSessionBody"));
       return;
     }
-    const endedAtSec = Math.floor(sessionEndedAtMs / 1000);
+    const endedAtSec = Math.floor(lastStoppedAtMs / 1000);
     const history = await loadHistory();
     const hasSameTimestamp = history.some((entry) => {
       const entrySec = Math.floor(new Date(entry.dateIso).getTime() / 1000);
@@ -341,13 +255,11 @@ export default function GroupSTA() {
     }
     await addHistoryEntry({
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      dateIso: new Date(sessionEndedAtMs).toISOString(),
+      dateIso: new Date(lastStoppedAtMs).toISOString(),
       items: results.map((r) => ({ name: r.name, seconds: r.value })),
     });
-    lastSavedAtSecRef.current = endedAtSec;
     Alert.alert(getText("historySavedTitle"), getText("historySavedBody"));
   };
-
 
   const swipeResponder = useMemo(
     () =>
@@ -356,61 +268,55 @@ export default function GroupSTA() {
           Math.abs(gesture.dx) > 20 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
         onPanResponderRelease: (_evt, gesture) => {
           if (gesture.dx > 80) {
-            navigation.navigate("IndividualSTA", { transition: "slide_from_left" });
+            navigation.navigate("GroupSTA", { transition: "slide_from_left" });
           } else if (gesture.dx < -80) {
-            navigation.navigate("IndividualSTA", { transition: "slide_from_right" });
+            navigation.navigate("GroupSTA", { transition: "slide_from_right" });
           }
         },
       }),
     [navigation]
   );
 
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: 8 }} {...swipeResponder.panHandlers}>
-      {/* HEADER */}
       <View style={styles.headerRow}>
-        {/* Таймер сессии */}
-        <View style={[styles.sessionPill, { backgroundColor: colors.ghost }]}>
-          <Feather name="clock" size={14} color={colors.text} />
-          <Text style={[styles.sessionPillText, { color: colors.text }]}>
-            {t.session}: {secToMMSS(sessionElapsed)}
-          </Text>
-        </View>
-
-        {/* Результаты */}
-        <Pressable style={[styles.btnToolbar, styles.btnGhost, { backgroundColor: colors.ghost }]} onPress={() => setResultsOpen(true)}>
+        <Pressable
+          style={[
+            styles.btnToolbar,
+            styles.btnGhost,
+            { backgroundColor: colors.ghost },
+            someoneRunning ? styles.btnDisabled : null,
+          ]}
+          onPress={() => setResultsOpen(true)}
+          disabled={someoneRunning}
+        >
           <Feather name="list" size={16} color={colors.text} />
           <Text style={{ fontWeight: "800", color: colors.text }}>{t.results}</Text>
         </Pressable>
       </View>
 
-      {/* Добавить */}
-      {!sessionRunning && (
-        <View style={styles.headerRow}>
-          <Pressable
-            style={[styles.btnPrimary, styles.btnToolbar, adding || list.length >= 10 ? styles.btnDisabled : null]}
-            disabled={adding || list.length >= 10}
-            onPress={onAddTrainee}
-          >
-            <Entypo name="plus" size={20} color="white" />
-            <Text style={styles.btnText}>{t.add}</Text>
-            <Text style={styles.badge}>{list.length}/10</Text>
-          </Pressable>
+      <View style={styles.headerRow}>
+        <Pressable
+          style={[styles.btnPrimary, styles.btnToolbar, adding || list.length >= 10 ? styles.btnDisabled : null]}
+          disabled={adding || list.length >= 10}
+          onPress={onAddTrainee}
+        >
+          <Entypo name="plus" size={20} color="white" />
+          <Text style={styles.btnText}>{t.add}</Text>
+          <Text style={styles.badge}>{list.length}/10</Text>
+        </Pressable>
 
-          <Pressable
-            style={[styles.btnDanger, styles.btnToolbar, list.length === 0 ? styles.btnDisabled : null]}
-            disabled={list.length === 0}
-            onPress={removeAll}
-          >
-            <Feather name="trash-2" size={18} color="white" />
-            <Text style={styles.btnText}>{t.deleteAll}</Text>
-          </Pressable>
-        </View>
-      )}
+        <Pressable
+          style={[styles.btnDanger, styles.btnToolbar, list.length === 0 || someoneRunning ? styles.btnDisabled : null]}
+          disabled={list.length === 0 || someoneRunning}
+          onPress={removeAll}
+        >
+          <Feather name="trash-2" size={18} color="white" />
+          <Text style={styles.btnText}>{t.deleteAll}</Text>
+        </Pressable>
+      </View>
 
-      {/* Ввод имени */}
-      {adding && !sessionRunning && (
+      {adding && (
         <View style={styles.addRow}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
@@ -437,13 +343,11 @@ export default function GroupSTA() {
         </View>
       )}
 
-      {/* Список участников */}
       <ScrollView contentContainerStyle={styles.list}>
         {list.map((p) => {
           const value = getParticipantSeconds(p);
           return (
             <View key={p.id} style={[styles.card, { backgroundColor: colors.card }]}>
-              {/* Верх строки: имя + статус */}
               <View style={styles.cardTop}>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <View style={[styles.statusDot, { backgroundColor: p.running ? "#22c55e" : "#9ca3af" }]} />
@@ -451,31 +355,24 @@ export default function GroupSTA() {
                 </View>
               </View>
 
-              {/* Один ряд: [-] [время] [+] [Стоп] [Удалить] */}
               <View style={styles.timerRow}>
-                <Pressable style={[styles.smallBtn, styles.btnGhost, { backgroundColor: colors.ghost }]} onPress={() => nudge(p.id, -1)}>
-                  <Feather name="minus" size={16} color={colors.text} />
+                <Pressable
+                  style={[styles.smallBtn, p.running ? styles.btnDanger : styles.btnPrimary]}
+                  onPress={() => (p.running ? handleStopOne(p.id) : handleStartOne(p.id))}
+                >
+                  <Text style={styles.btnText}>{p.running ? t.stop : t.start}</Text>
                 </Pressable>
 
                 <Text style={[styles.timerText, { color: colors.text }]}>{secToMMSS(value)}</Text>
 
-                <Pressable style={[styles.smallBtn, styles.btnGhost, { backgroundColor: colors.ghost }]} onPress={() => nudge(p.id, +1)}>
-                  <Feather name="plus" size={16} color={colors.text} />
-                </Pressable>
-
                 <Pressable
-                  style={[styles.smallBtn, p.running ? styles.btnDanger : styles.btnDisabledGhost]}
-                  onPress={() => p.running && handleStopOne(p.id)}
+                  style={[styles.smallBtn, styles.btnDangerLight, p.running ? styles.btnDisabled : null]}
+                  onPress={() => removeParticipant(p.id)}
+                  disabled={p.running}
                 >
-                  <Text style={styles.btnText}>{t.stop}</Text>
+                  <Feather name="trash-2" size={16} color="#fff" />
+                  <Text style={[styles.btnText, { fontSize: 12 }]}>{t.delete}</Text>
                 </Pressable>
-
-                {!sessionRunning && (
-                  <Pressable style={[styles.smallBtn, styles.btnDangerLight]} onPress={() => removeParticipant(p.id)}>
-                    <Feather name="trash-2" size={16} color="#fff" />
-                    <Text style={[styles.btnText, { fontSize: 12 }]}>{t.delete}</Text>
-                  </Pressable>
-                )}
               </View>
             </View>
           );
@@ -488,36 +385,6 @@ export default function GroupSTA() {
         )}
       </ScrollView>
 
-      {/* Нижняя панель */}
-      <View style={[styles.controlsBar, { backgroundColor: colors.controls }]}>
-        {!sessionRunning ? (
-          <>
-            <Pressable
-              style={[styles.btn, styles.controlsBtn, styles.btnPrimary, list.length === 0 ? styles.btnDisabled : null]}
-              disabled={list.length === 0}
-              onPress={handleStartAll}
-            >
-              <Text style={styles.btnText}>{t.start}</Text>
-            </Pressable>
-
-            {canResetAll ? (
-              <Pressable style={[styles.btn, styles.controlsBtn, styles.btnWarn]} onPress={handleResetAll}>
-                <Text style={styles.btnText}>{t.reset}</Text>
-              </Pressable>
-            ) : (
-              <Pressable style={[styles.btn, styles.controlsBtn, styles.btnGhost, styles.btnDisabled]} disabled>
-                <Text style={[styles.btnText, { color: "#6b7280" }]}>{t.reset}</Text>
-              </Pressable>
-            )}
-          </>
-        ) : (
-          <Pressable style={[styles.btn, styles.controlsBtn, styles.btnDanger]} onPress={handleStopAll}>
-            <Text style={styles.btnText}>{t.stop}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {/* Модалка результатов */}
       <Modal visible={resultsOpen} transparent animationType="slide" onRequestClose={() => setResultsOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
@@ -554,20 +421,10 @@ export default function GroupSTA() {
                 ))
               )}
             </ScrollView>
-
-            <View style={{ marginTop: 12, alignItems: "flex-end" }}>
-              <Pressable
-                style={[styles.btn, styles.btnPrimary, styles.btnSm, styles.modalOKbtn]}
-                onPress={() => setResultsOpen(false)}
-              >
-                <Text style={styles.btnText}>{t.ok}</Text>
-              </Pressable>
-            </View>
           </View>
         </View>
       </Modal>
 
-      {/* Модалка выбора языка */}
       <Modal visible={langOpen} transparent animationType="fade" onRequestClose={() => setLangOpen(false)}>
         <View style={styles.langBackdrop}>
           <View style={[styles.langCard, { backgroundColor: colors.card }]}>
@@ -603,7 +460,6 @@ export default function GroupSTA() {
   );
 }
 
-/* Стили */
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
@@ -616,7 +472,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  sessionPillText: { fontSize: 14, fontWeight: "800", color: "#111827" },
   btnToolbar: {
     height: 48,
     borderRadius: 12,
@@ -624,18 +479,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
-    flexGrow: 1,
-    flexBasis: "48%",
-    minWidth: 140,
-  },
-  sessionPill: {
-    height: 48,
-    borderRadius: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-    backgroundColor: "#f3f4f6",
     flexGrow: 1,
     flexBasis: "48%",
     minWidth: 140,
@@ -727,36 +570,6 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: "#6b7280", fontSize: 14 },
 
-  controlsBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 100,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    backgroundColor: "#ffffff",
-    padding: 16,
-    flexDirection: "row",
-    gap: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: {
-        elevation: 4,
-      },
-      web: {
-        boxShadow: "0px -2px 12px rgba(0,0,0,0.12)",
-      },
-    }),
-  },
-
   btn: {
     borderRadius: 12,
     minWidth: 120,
@@ -766,23 +579,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     gap: 6,
-    flexShrink: 1,
-  },
-  controlsBtn: {
-    flexGrow: 1,
-    flexBasis: "45%",
-    minWidth: 0,
   },
   btnSm: { minWidth: 90, height: 40 },
   btnText: { fontWeight: "800", color: "white" },
 
   btnPrimary: { backgroundColor: "#0ea5e9" },
-  btnWarn: { backgroundColor: "#f7c673ff" },
   btnDanger: { backgroundColor: "#ef4444" },
   btnGhost: { backgroundColor: "#f3f4f6" },
   btnDangerLight: { backgroundColor: "#f87171" },
   btnDisabled: { opacity: 0.5 },
-  btnDisabledGhost: { backgroundColor: "#e5e7eb", opacity: 0.7 },
 
   badge: {
     marginLeft: 6,
@@ -795,7 +600,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* Модалка результатов */
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
@@ -831,9 +635,6 @@ const styles = StyleSheet.create({
   historySaveBtn: {
     flexGrow: 1,
   },
-  modalOKbtn: {
-    marginBottom: 20,
-  },
   resultRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -846,7 +647,6 @@ const styles = StyleSheet.create({
   resultName: { fontWeight: "700", color: "#111827" },
   resultTime: { fontWeight: "900", color: "#111827", letterSpacing: 0.5 },
 
-  /* Модалка выбора языка */
   langBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",

@@ -63,6 +63,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Clear",
     historyDeleteAction: "Delete",
     historyCancelAction: "Cancel",
+    HelpTitle: "Help",
+    HelpBody0: "Swipe left or right to switch between screens.",
+    HelpBody1:
+      'Add participants and press "Start" to begin a session. During a session, you cannot add or remove participants. Press "Stop" to finish the session and view the results.',
+    HelpBody2:
+      "You can save a session to history for later review. The history can be cleared at any time from the history screen.",
   },
 
   es: {
@@ -107,6 +113,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Borrar",
     historyDeleteAction: "Eliminar",
     historyCancelAction: "Cancelar",
+    HelpTitle: "Ayuda",
+    HelpBody0: "Desliza hacia la izquierda o la derecha para cambiar entre pantallas.",
+    HelpBody1:
+      "Agrega participantes y pulsa «Iniciar» para comenzar una sesión. Durante la sesión no puedes agregar ni eliminar participantes. Pulsa «Detener» para finalizar la sesión y ver los resultados.",
+    HelpBody2:
+      "Puedes guardar una sesión en el historial para verla más tarde. El historial se puede borrar en cualquier momento desde la pantalla de historial.",
   },
 
   fr: {
@@ -152,6 +164,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Effacer",
     historyDeleteAction: "Supprimer",
     historyCancelAction: "Annuler",
+    HelpTitle: "Aide",
+    HelpBody0: "Faites glisser vers la gauche ou la droite pour changer d’écran.",
+    HelpBody1:
+      "Ajoutez des participants et appuyez sur « Démarrer » pour lancer une session. Pendant la session, vous ne pouvez pas ajouter ni supprimer de participants. Appuyez sur « Arrêter » pour terminer la session et voir les résultats.",
+    HelpBody2:
+      "Vous pouvez enregistrer une session dans l’historique pour la consulter plus tard. L’historique peut être effacé à tout moment depuis l’écran de l’historique.",
   },
 
   it: {
@@ -196,6 +214,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Cancella",
     historyDeleteAction: "Elimina",
     historyCancelAction: "Annulla",
+    HelpTitle: "Guida",
+    HelpBody0: "Scorri verso sinistra o destra per passare da una schermata all’altra.",
+    HelpBody1:
+      "Aggiungi i partecipanti e premi «Avvia» per iniziare una sessione. Durante la sessione non è possibile aggiungere o rimuovere partecipanti. Premi «Ferma» per terminare la sessione e visualizzare i risultati.",
+    HelpBody2:
+      "Puoi salvare una sessione nella cronologia per consultarla in seguito. La cronologia può essere cancellata in qualsiasi momento dalla schermata della cronologia.",
   },
 
   ja: {
@@ -239,6 +263,11 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "消去",
     historyDeleteAction: "削除",
     historyCancelAction: "キャンセル",
+    HelpTitle: "ヘルプ",
+    HelpBody0: "左右にスワイプして画面を切り替えます。",
+    HelpBody1:
+      "参加者を追加し、「開始」を押してセッションを開始します。セッション中は参加者の追加や削除はできません。「停止」を押すとセッションが終了し、結果を確認できます。",
+    HelpBody2: "セッションは履歴に保存して後で確認できます。履歴は履歴画面からいつでも削除できます。",
   },
 
   kk: {
@@ -282,6 +311,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Тазалау",
     historyDeleteAction: "Өшіру",
     historyCancelAction: "Бас тарту",
+    HelpTitle: "Анықтама",
+    HelpBody0: "Экрандар арасында ауысу үшін оңға немесе солға сырғытыңыз.",
+    HelpBody1:
+      "Қатысушыларды қосып, «Бастау» батырмасын басу арқылы сессияны бастаңыз. Сессия барысында қатысушыларды қосу немесе өшіру мүмкін емес. «Тоқтату» батырмасын басып, сессияны аяқтап, нәтижелерді көре аласыз.",
+    HelpBody2:
+      "Сессияны кейін қарау үшін тарихқа сақтауға болады. Тарихты кез келген уақытта тарих экранынан тазалауға болады.",
   },
 
   ru: {
@@ -326,6 +361,12 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "Очистить",
     historyDeleteAction: "Удалить",
     historyCancelAction: "Отмена",
+    HelpTitle: "Справка",
+    HelpBody0: "Переключение между экранами - смахните вправо или влево",
+    HelpBody1:
+      "Добавьте участников и нажмите «Старт», чтобы начать сессию. Во время сессии вы не можете добавлять или удалять участников. Нажмите «Стоп», чтобы завершить сессию и просмотреть результаты.",
+    HelpBody2:
+      "Вы можете сохранить сессию в истории для дальнейшего просмотра. Историю можно очистить в любое время из экрана истории.",
   },
 
   zh: {
@@ -369,5 +410,9 @@ export const STRINGS: Record<Lang, Strings> = {
     historyClearAction: "清空",
     historyDeleteAction: "删除",
     historyCancelAction: "取消",
+    HelpTitle: "帮助",
+    HelpBody0: "向左或向右滑动以切换屏幕。",
+    HelpBody1: "添加参与者并点击“开始”以启动会话。会话进行中无法添加或删除参与者。点击“停止”结束会话并查看结果。",
+    HelpBody2: "你可以将会话保存到历史记录中以便日后查看。可以随时在历史记录界面清除历史。",
   },
 };

@@ -3,6 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View, Platform
 import { FontAwesome } from "@expo/vector-icons";
 import { STRINGS } from "../i18n/strings";
 import { useLanguage } from "../i18n/LanguageContext";
+import { useThemeMode } from "../theme/ThemeContext";
 
 const SUPPORT_URL = process.env.EXPO_PUBLIC_SUPPORT_URL ?? "";
 const CONTACT_URL = process.env.EXPO_PUBLIC_CONTACT_URL ?? "";
@@ -28,6 +29,14 @@ async function openUrl(url: string) {
 export default function SupportScreen() {
   const { lang } = useLanguage();
   const t = STRINGS[lang];
+  const { isDark } = useThemeMode();
+  const colors = {
+    bg: isDark ? "#0b0f19" : "#ffffff",
+    card: isDark ? "#111827" : "#ffffff",
+    text: isDark ? "#f9fafb" : "#111827",
+    muted: isDark ? "#9ca3af" : "#6b7280",
+    ghost: isDark ? "#1f2937" : "#f3f4f6",
+  };
   const onSupport = useCallback(async () => {
     if (!SUPPORT_URL || !isValidHttpUrl(SUPPORT_URL)) {
       Alert.alert("Support link is not set", "Set EXPO_PUBLIC_SUPPORT_URL in .env (e.g. https://paypal.me/yourname)");
@@ -45,28 +54,34 @@ export default function SupportScreen() {
   }, []);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>{t.supportTitle}</Text>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
+        <Text style={[styles.title, { color: colors.text }]}>{t.HelpTitle}</Text>
 
-        <Text style={styles.bodyText}>{t.supportBody1}</Text>
+        <Text style={[styles.bodyText, { color: colors.text }]}>{t.HelpBody0}</Text>
+        <Text style={[styles.bodyText, { color: colors.text }]}>{t.HelpBody1}</Text>
+        <Text style={[styles.bodyText, { color: colors.text }]}>{t.HelpBody2}</Text>
 
-        <Text style={styles.bodyText}>{t.supportBody2}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t.supportTitle}</Text>
+
+        <Text style={[styles.bodyText, { color: colors.text }]}>{t.supportBody1}</Text>
+
+        <Text style={[styles.bodyText, { color: colors.text }]}>{t.supportBody2}</Text>
 
         <View style={styles.actions}>
           <Pressable style={[styles.btn, styles.btnPrimary]} onPress={onSupport}>
             <FontAwesome name="paypal" size={18} color="white" />
             <Text style={styles.btnText}>{t.supportPayPal}</Text>
           </Pressable>
-          <Pressable style={[styles.btn, styles.btnGhost]} onPress={onContact}>
-            <FontAwesome name="telegram" size={18} color="#111827" />
-            <Text style={[styles.btnText, styles.btnTextGhost]}>{t.supportContact}</Text>
+          <Pressable style={[styles.btn, styles.btnGhost, { backgroundColor: colors.ghost }]} onPress={onContact}>
+            <FontAwesome name="telegram" size={18} color={colors.text} />
+            <Text style={[styles.btnText, { color: colors.text }]}>{t.supportContact}</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.noteText}>{t.supportNote}</Text>
+        <Text style={[styles.noteText, { color: colors.muted }]}>{t.supportNote}</Text>
 
-        <Text style={styles.noteText}>{t.appIconNote}</Text>
+        <Text style={[styles.noteText, { color: colors.muted }]}>{t.appIconNote}</Text>
       </View>
     </ScrollView>
   );
