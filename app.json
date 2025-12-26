@@ -23,7 +23,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.malulig.groupsta",
-      "versionCode": 1
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,9 +33,6 @@
         "projectId": "0b54dce5-4f72-4b64-a254-a8c90922a6c2"
       }
     },
-    "plugins": [
-      "expo-localization",
-      "expo-font"
-    ]
+    "plugins": ["expo-localization", "expo-font"]
   }
 }
