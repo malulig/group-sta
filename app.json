@@ -33,6 +33,9 @@
         "projectId": "0b54dce5-4f72-4b64-a254-a8c90922a6c2"
       }
     },
-    "plugins": ["expo-localization"]
+    "plugins": [
+      "expo-localization",
+      "expo-font"
+    ]
   }
 }

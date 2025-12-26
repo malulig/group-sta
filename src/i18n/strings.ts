@@ -1,9 +1,10 @@
-export type Lang = "en" | "es" | "fr" | "it" | "ja" | "kk" | "ru" | "zh";
+export type Lang = "en" | "uk" | "es" | "fr" | "it" | "ja" | "kk" | "ru" | "zh";
 
-export const SUPPORTED_LANGS: Lang[] = ["en", "es", "fr", "it", "ja", "kk", "ru", "zh"];
+export const SUPPORTED_LANGS: Lang[] = ["en", "uk", "es", "fr", "it", "ja", "kk", "ru", "zh"];
 
 export const LANG_LABEL: Record<Lang, string> = {
   en: "EN",
+  uk: "UK",
   es: "ES",
   fr: "FR",
   it: "IT",
@@ -69,6 +70,58 @@ export const STRINGS: Record<Lang, Strings> = {
       'Add participants and press "Start" to begin a session. During a session, you cannot add or remove participants. Press "Stop" to finish the session and view the results.',
     HelpBody2:
       "You can save a session to history for later review. The history can be cleared at any time from the history screen.",
+  },
+  uk: {
+    session: "Сесія",
+    results: "Результати",
+    add: "Додати",
+    deleteAll: "Видалити все",
+    participantNamePh: "Імʼя учасника",
+    ok: "OK",
+    cancel: "Скасувати",
+    emptyHint: "Додайте учасників (до 10), а потім натисніть «Старт».",
+    start: "Старт",
+    reset: "Скинути",
+    stop: "Стоп",
+    delete: "Видалити",
+    listEmpty: "Список порожній.",
+
+    supportTitle: "Підтримати проєкт",
+    supportBody1:
+      "Додаток безкоштовний і без реклами. Якщо він виявився корисним, ви можете підтримати розробку через PayPal.",
+    supportBody2: "Мета: $99 — членство в Apple Developer Program для публікації iOS-версії в App Store.",
+    supportPayPal: "Підтримати через PayPal",
+    supportContact: "Звʼязатися в Telegram",
+    supportNote: "Підтримка необовʼязкова. Додаток повністю працює без пожертв.",
+    appIconNote: "Іконку додатка створено Freepik з сайту www.flaticon.com.",
+
+    historyTitle: "Історія",
+    historySave: "Зберегти в історію",
+    historyNoDataTitle: "Немає даних",
+    historyNoDataBody: "Додайте учасників, щоб зберегти сесію в історії.",
+    historyNoSessionTitle: "Немає завершеної сесії",
+    historyNoSessionBody: "Натисніть «Стоп», щоб завершити сесію.",
+    historyAlreadySavedTitle: "Вже збережено",
+    historyAlreadySavedBody: "Ця сесія вже є в історії.",
+    historySavedTitle: "Збережено",
+    historySavedBody: "Сесію збережено в історії.",
+    historyLoading: "Завантаження...",
+    historyEmpty: "Історія порожня.",
+    historyClear: "Очистити історію",
+    historyClearConfirmTitle: "Очистити історію?",
+    historyClearConfirmBody: "Цю дію неможливо скасувати.",
+    historyDeleteConfirmTitle: "Видалити сесію?",
+    historyDeleteConfirmBody: "Цю дію неможливо скасувати.",
+    historyClearAction: "Очистити",
+    historyDeleteAction: "Видалити",
+    historyCancelAction: "Скасувати",
+
+    HelpTitle: "Довідка",
+    HelpBody0: "Проведіть пальцем ліворуч або праворуч, щоб перемикатися між екранами.",
+    HelpBody1:
+      "Додайте учасників і натисніть «Старт», щоб розпочати сесію. Під час сесії не можна додавати або видаляти учасників. Натисніть «Стоп», щоб завершити сесію та переглянути результати.",
+    HelpBody2:
+      "Ви можете зберегти сесію в історії для подальшого перегляду. Історію можна очистити в будь-який момент на екрані історії.",
   },
 
   es: {
